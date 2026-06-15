@@ -1,4 +1,4 @@
-import { CSSProperties, ChangeEvent, DragEvent, forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, ChangeEvent, DragEvent, ReactNode, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeIndianRupee,
@@ -18,6 +18,20 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
+import {
+  bindLuxuryHoverEffects,
+  cleanupAnime,
+  runCinematicLoader,
+  runCoffeeShopEntrance,
+  runFloatingBeans,
+  runMenuItemEntrance,
+  runMenuItemExit,
+  runMenuPreviewEntrance,
+  runSteamAnimation,
+  runThemeTransition,
+  runTitleLetters,
+} from "./animations/animeCafe";
+import LuxuryCafeShowcase from "./components/LuxuryCafeShowcase";
 
 type Badge = "featured" | "bestseller" | "new" | "vegetarian" | "vegan" | "spicy";
 
@@ -238,13 +252,107 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [editingCategory, setEditingCategory] = useState(categories[0]?.id || "");
   const [darkMode, setDarkMode] = useState(Boolean(saved?.darkMode));
+  const [isLoading, setIsLoading] = useState(true);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
+  const appRef = useRef<HTMLElement>(null);
+  const loaderRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const previousThemeRef = useRef(theme);
+  const categoryExitRef = useRef<ReturnType<typeof runMenuItemExit>>(null);
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify({ cafe, categories, items, theme, darkMode }));
   }, [cafe, categories, items, theme, darkMode]);
+
+  // Anime.js added: coffee-cup loader before the main UI enters.
+  useEffect(() => {
+    if (!loaderRef.current) return;
+
+    const animations = runCinematicLoader(loaderRef.current);
+    const timer = window.setTimeout(() => setIsLoading(false), 2450);
+
+    return () => {
+      window.clearTimeout(timer);
+      cleanupAnime(animations);
+    };
+  }, []);
+
+  // Anime.js added: staggered app entrance, live preview reveal, steam, beans, and hover polish.
+  useEffect(() => {
+    if (isLoading || !appRef.current) return;
+
+    const animations = [
+      ...runCoffeeShopEntrance(appRef.current),
+      previewRef.current ? runMenuPreviewEntrance(previewRef.current) : null,
+      runSteamAnimation(appRef.current),
+      runTitleLetters(appRef.current),
+      ...runFloatingBeans(appRef.current),
+    ];
+
+    return () => {
+      cleanupAnime(animations);
+    };
+  }, [isLoading]);
+
+  // Anime.js added: bind hover effects again when interactive cards/buttons change.
+  useEffect(() => {
+    if (isLoading || !appRef.current) return;
+
+    return bindLuxuryHoverEffects(appRef.current);
+  }, [activeCategory, categories.length, isLoading, items.length, search]);
+
+  // Anime.js added: re-run premium card entrance when menu cards are added or filtered.
+  useEffect(() => {
+    if (isLoading || !appRef.current) return;
+
+    let animation: ReturnType<typeof runMenuItemEntrance> = null;
+    const frame = window.requestAnimationFrame(() => {
+      if (appRef.current) animation = runMenuItemEntrance(appRef.current);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      animation?.revert();
+    };
+  }, [activeCategory, categories.length, isLoading, items.length, search]);
+
+  // Anime.js added: letter-by-letter cafe branding refresh when the cafe name changes.
+  useEffect(() => {
+    if (isLoading || !appRef.current) return;
+
+    let animation: ReturnType<typeof runTitleLetters> = null;
+    const frame = window.requestAnimationFrame(() => {
+      if (appRef.current) animation = runTitleLetters(appRef.current);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      animation?.revert();
+    };
+  }, [cafe.name, isLoading]);
+
+  // Anime.js added: tween theme CSS variables so palette changes feel handcrafted.
+  useEffect(() => {
+    if (isLoading || !appRef.current) {
+      previousThemeRef.current = theme;
+      return;
+    }
+
+    const animation = runThemeTransition(appRef.current, previousThemeRef.current, theme);
+    previousThemeRef.current = theme;
+
+    return () => {
+      animation.cancel();
+    };
+  }, [isLoading, theme]);
+
+  useEffect(
+    () => () => {
+      categoryExitRef.current?.revert();
+    },
+    []
+  );
 
   const visibleCategories = categories.filter((category) => activeCategory === "all" || category.id === activeCategory);
   const filteredItems = items.filter((item) => {
@@ -294,6 +402,29 @@ function App() {
   };
 
   const removeItem = (id: string) => setItems((current) => current.filter((item) => item.id !== id));
+
+  const handleCategoryChange = (nextCategory: string) => {
+    if (nextCategory === activeCategory) return;
+    categoryExitRef.current?.revert();
+
+    if (!appRef.current) {
+      setActiveCategory(nextCategory);
+      return;
+    }
+
+    const exitAnimation = runMenuItemExit(appRef.current);
+    categoryExitRef.current = exitAnimation;
+
+    if (!exitAnimation) {
+      setActiveCategory(nextCategory);
+      return;
+    }
+
+    exitAnimation.then(() => {
+      setActiveCategory(nextCategory);
+      categoryExitRef.current = null;
+    });
+  };
 
   const handleItemDrop = (event: DragEvent, targetCategoryId: string, targetItemId?: string) => {
     event.preventDefault();
@@ -357,10 +488,23 @@ function App() {
     "--body-font": theme.body,
   } as CSSProperties;
 
+  if (isLoading) {
+    return <CoffeeLoader ref={loaderRef} />;
+  }
+
   return (
-    <main className={`app-shell ${theme.texture} ${darkMode ? "dark" : ""}`} style={themeStyle}>
+    <>
+    <LuxuryCafeShowcase />
+    <main id="designer-studio" ref={appRef} className={`app-shell ${theme.texture} ${darkMode ? "dark" : ""}`} style={themeStyle}>
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
+      <div className="floating-beans" aria-hidden="true">
+        {[0, 1, 2, 3, 4].map((bean) => (
+          <span key={bean} className={`floating-bean bean-${bean + 1}`}>
+            <Bean size={22} />
+          </span>
+        ))}
+      </div>
       <aside className="panel sidebar">
         <BrandEditor cafe={cafe} setCafe={setCafe} />
         <section className="control-block">
@@ -397,7 +541,7 @@ function App() {
         <div className="editor-top">
           <div>
             <p className="eyebrow">Boutique menu studio</p>
-            <h1>Cafe Menu Designer</h1>
+            <h1 className="hero-title"><AnimatedLetters text="Cafe Menu Designer" /></h1>
           </div>
           <button className="primary-button" onClick={() => addItem(activeCategory === "all" ? categories[0].id : activeCategory)}>
             <Plus size={18} /> Add item
@@ -408,7 +552,7 @@ function App() {
             <Search size={17} />
             <input placeholder="Search menu items" value={search} onChange={(event) => setSearch(event.target.value)} />
           </label>
-          <select value={activeCategory} onChange={(event) => setActiveCategory(event.target.value)}>
+          <select value={activeCategory} onChange={(event) => handleCategoryChange(event.target.value)}>
             <option value="all">All categories</option>
             {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
@@ -452,10 +596,11 @@ function App() {
         <MenuPreview ref={previewRef} cafe={cafe} categories={categories} items={items} featuredItems={featuredItems} theme={theme} />
       </aside>
     </main>
+    </>
   );
 }
 
-function PanelTitle({ icon, title, action }: { icon: React.ReactNode; title: string; action?: React.ReactNode }) {
+function PanelTitle({ icon, title, action }: { icon: ReactNode; title: string; action?: ReactNode }) {
   return (
     <div className="panel-title">
       <span>{icon}{title}</span>
@@ -557,7 +702,6 @@ function ItemCard({ item, categories, updateItem, removeItem, duplicateItem, set
       onDragEnd={() => setDraggedItem(null)}
       onDragOver={(event) => event.preventDefault()}
       onDrop={onDrop}
-      whileHover={{ y: -3 }}
     >
       <div className="item-media">
         {item.image ? <img src={item.image} alt="" /> : <Bean size={24} />}
@@ -605,8 +749,15 @@ const MenuPreview = forwardRef<HTMLDivElement, {
       <div className="coffee-mark mark-one" />
       <div className="coffee-mark mark-two" />
       <header className="menu-header">
-        {cafe.logo ? <img src={cafe.logo} alt="" /> : <Bean size={34} />}
-        <h2>{cafe.name}</h2>
+        <div className="preview-logo-wrap">
+          <div className="logo-steam" aria-hidden="true">
+            <span className="steam-wisp" />
+            <span className="steam-wisp" />
+            <span className="steam-wisp" />
+          </div>
+          {cafe.logo ? <img src={cafe.logo} alt="" /> : <Bean size={34} />}
+        </div>
+        <h2 className="cafe-title"><AnimatedLetters text={cafe.name} /></h2>
         <p>{cafe.tagline}</p>
         <div className="ornament"><span /><Bean size={16} /><span /></div>
       </header>
@@ -653,5 +804,33 @@ function PreviewLine({ item }: { item: MenuItem }) {
     </div>
   );
 }
+
+function AnimatedLetters({ text }: { text: string }) {
+  return (
+    <span aria-label={text} className="animated-title-text">
+      {Array.from(text).map((letter, index) => (
+        <span aria-hidden="true" className="title-letter" key={`${letter}-${index}`}>
+          {letter === " " ? "\u00a0" : letter}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const CoffeeLoader = forwardRef<HTMLDivElement>((_, ref) => (
+  <div ref={ref} className="coffee-loader" role="status" aria-label="Loading cafe menu designer">
+    <Bean className="loader-bean" size={58} aria-hidden="true" />
+    <div className="loader-steam" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </div>
+    <div className="loader-cup" aria-hidden="true">
+      <div className="loader-coffee" />
+    </div>
+    <div className="loader-saucer" aria-hidden="true" />
+    <p className="loader-brand">Cafe Aroma Atelier</p>
+  </div>
+));
 
 export default App;

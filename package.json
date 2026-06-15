@@ -6,6 +6,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "animejs": "^4.4.1",
     "framer-motion": "latest",
     "html2canvas": "latest",
     "jspdf": "latest",
@@ -14,9 +15,9 @@
     "react-dom": "latest"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
     "autoprefixer": "latest",
     "postcss": "latest",
     "tailwindcss": "^3.4.17",
