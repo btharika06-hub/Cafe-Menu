@@ -101,10 +101,10 @@ export default function LuxuryCafeShowcase() {
     <section ref={rootRef} className="luxury-showcase">
       <Atmosphere />
       <Hero />
-      <ProductStory title="Coffee Collection" eyebrow="Roasted like a ritual" products={coffeeProducts} variant="split" />
-      <ProductStory title="Dessert Showcase" eyebrow="Bakery theatre" products={dessertProducts} variant="cards" />
-      <ProductStory title="Sandwich Collection" eyebrow="Golden, layered, composed" products={sandwichProducts} variant="alternating" />
-      <ProductStory title="Breakfast Menu" eyebrow="A softer kind of morning" products={breakfastProducts} variant="parallax" />
+      <ProductStory title="Coffee" eyebrow="Roasted like a ritual" products={coffeeProducts} variant="split" />
+      <ProductStory title="Dessert's" eyebrow="Bakery theatre" products={dessertProducts} variant="cards" />
+      <ProductStory title="Sandwich" eyebrow="Golden, layered, composed" products={sandwichProducts} variant="alternating" />
+      <ProductStory title="Breakfast" eyebrow="A softer kind of morning" products={breakfastProducts} variant="parallax" />
       <section ref={sliderRef} className="cinematic-slider">
         <div className="slider-bg" />
         <div className="slide-stage">
@@ -162,9 +162,9 @@ function Hero() {
         </div>
       </div>
       <div className="hero-copy">
-        <p className="showcase-eyebrow">Cinematic artisan cafe experience</p>
-        <h1 className="section-title"><AnimatedLetters text="Cafe Aroma Atelier" /></h1>
-        <p className="reveal-copy">Design menus, reveal products, and present your cafe like a luxury coffee house launch.</p>
+        <p className="showcase-eyebrow">Where Every Sip Shines.</p>
+        <h1 className="section-title"><AnimatedLetters text="Café Lumière" /></h1>
+
         <a className="magnetic-button" href="#designer-studio"><Sparkles size={17} /> Open menu studio</a>
       </div>
     </section>
